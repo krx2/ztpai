@@ -1,7 +1,12 @@
 package pl.edu.pk.demo.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import pl.edu.pk.demo.dto.ProductMapper;
+import pl.edu.pk.demo.dto.ProductRequest;
+import pl.edu.pk.demo.dto.ProductResponse;
+import pl.edu.pk.demo.exception.ResourceNotFoundException;
 import pl.edu.pk.demo.model.Product;
 import pl.edu.pk.demo.service.ProductService;
 
@@ -10,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
+
     private final ProductService service;
 
     public ProductController(ProductService productService) {
@@ -18,32 +24,34 @@ public class ProductController {
 
     // GET /api/products — lista wszystkich
     @GetMapping
-    public List<Product> getAll() {
-        return service.getAllProducts();
+    public List<ProductResponse> getAll() {
+        return service.getAllProducts().stream()
+                .map(ProductMapper::toResponse)
+                .toList();
     }
 
     // GET /api/products/{id} — pojedynczy lub 404
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getById(@PathVariable Long id) {
+    public ProductResponse getById(@PathVariable Long id) {
         return service.getProductById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .map(ProductMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Produkt o id=" + id + " nie istnieje"));
     }
 
     // POST /api/products — tworzenie nowego
     @PostMapping
-    public ResponseEntity<Product> create(@RequestBody Product product) {
-        Product created = service.createProduct(product);
-        return ResponseEntity.status(201).body(created);
+    public ResponseEntity<ProductResponse> create(@Valid @RequestBody ProductRequest request) {
+        Product created = service.createProduct(ProductMapper.toEntity(request));
+        return ResponseEntity.status(201).body(ProductMapper.toResponse(created));
     }
 
     // PUT /api/products/{id} — aktualizacja
     @PutMapping("/{id}")
-    public ResponseEntity<Product> update(@PathVariable Long id,
-                                          @RequestBody Product product) {
-        return service.updateProduct(id, product)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ProductResponse update(@PathVariable Long id,
+                                  @Valid @RequestBody ProductRequest request) {
+        return service.updateProduct(id, ProductMapper.toEntity(request))
+                .map(ProductMapper::toResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Produkt o id=" + id + " nie istnieje"));
     }
 
     // DELETE /api/products/{id} — usuwanie lub 404
@@ -52,6 +60,6 @@ public class ProductController {
         if (service.deleteProduct(id)) {
             return ResponseEntity.noContent().build(); // 204
         }
-        return ResponseEntity.notFound().build(); // 404
+        throw new ResourceNotFoundException("Produkt o id=" + id + " nie istnieje");
     }
 }
