@@ -1,6 +1,7 @@
 package pl.edu.pk.demo.service;
 
 import org.springframework.stereotype.Service;
+import pl.edu.pk.demo.exception.ResourceNotFoundException;
 import pl.edu.pk.demo.model.Product;
 import pl.edu.pk.demo.repository.ProductRepository;
 
@@ -19,11 +20,15 @@ public class ProductService {
         return repository.findAll();
     }
 
-    public Optional<Product> getProductById(Long id) {
-        return repository.findById(id);
+    public Product getProductById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
     }
 
     public Product createProduct(Product product) {
+        if (product.getName() == null || product.getName().isBlank()) {
+            throw new IllegalArgumentException("Product name cannot be null or empty");
+        }
         return repository.save(product);
     }
 

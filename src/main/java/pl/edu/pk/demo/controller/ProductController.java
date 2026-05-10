@@ -33,9 +33,7 @@ public class ProductController {
     // GET /api/products/{id} — pojedynczy lub 404
     @GetMapping("/{id}")
     public ProductResponse getById(@PathVariable Long id) {
-        return service.getProductById(id)
-                .map(ProductMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Produkt o id=" + id + " nie istnieje"));
+        return ProductMapper.toResponse(service.getProductById(id));
     }
 
     // POST /api/products — tworzenie nowego
